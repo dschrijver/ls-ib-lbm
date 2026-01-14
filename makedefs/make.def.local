@@ -1,0 +1,3 @@
+ADDITIONAL_OPT_FLAGS =
+
+HDF5_FLAGS = -I$(shell pwd)/hdf5/include -L$(shell pwd)/hdf5/lib
