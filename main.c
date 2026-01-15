@@ -1,10 +1,18 @@
 #include <mpi.h>
+#include <stdio.h>
 
 #include "include/datatypes.h"
 #include "include/memory.h"
 #include "params.h"
 #include "include/initialize.h"
 #include "include/stencil.h"
+#include "include/forcing.h"
+#include "include/utils.h"
+#include "include/output.h"
+#include "include/collide.h"
+#include "include/communicate.h"
+#include "include/stream.h"
+#include "include/fields.h"
 
 int main(int argc, char **argv)
 {
@@ -32,6 +40,85 @@ int main(int argc, char **argv)
     params->t_output = 0;
     params->t_log = 0;
     params->n_output = 0;
+
+    initialize_fields(sim);
+
+    evaluate_gravity_force(sim);
+
+    evaluate_total_force(sim);
+
+    initialize_distribution(sim);
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    double start_time = MPI_Wtime();
+    double start_timestep, duration_timestep;
+    double start_substep, duration_substep;
+    char output_info[128];
+
+    while (params->t < params->NTIME)
+    {
+
+        MPI_Barrier(MPI_COMM_WORLD);
+        start_timestep = MPI_Wtime();
+
+        // LOGGING TIME
+        if ((params->process_rank == 0) && (params->t_log == params->t)) 
+        {
+            printf("================================================================================\n");
+            printf("Time: %d\n", params->t);
+            printf("--------------------------------------------------------------------------------\n");
+        }
+
+        // OUTPUT
+        if (params->t_output == params->t)
+        {
+            TIME_OUTPUT(
+                output_data(sim);
+                params->t_output += params->NSTORE;
+            )
+        }
+
+        TIME("> Collision...",
+            collide_distributions(sim);
+        )
+
+        TIME("> Communicate distributions...",
+            communicate_dists(sim);
+        )
+
+        TIME("> Streaming...",
+            stream_distributions(sim);
+        )
+
+        TIME("> Computing macroscopic fields...",
+            extract_moments(sim);
+            evaluate_gravity_force(sim);
+            evaluate_total_force(sim);
+            update_final_velocity(sim);
+        )
+
+        duration_timestep = MPI_Wtime() - start_timestep;
+
+        // LOGGING INFORMATION
+        if ((params->process_rank == 0) && (params->t_log == params->t))   
+        {
+            printf("--------------------------------------------------------------------------------\n");
+            printf("Step completed!\n");
+            printf("    Duration of time step: %.4fs\n", duration_timestep);
+            printf("    Total simulation time: %.2fh\n", (MPI_Wtime() - start_time) / 3600.0);
+            printf("    Expected remaining simulation time: %.2fh\n", (MPI_Wtime() - start_time) / 3600.0 / (double)(params->t + 1) * (double)(params->NTIME - params->t - 1));
+            params->t_log += params->NLOG;
+        }
+
+        params->t++;
+    }
+
+    output_data(sim);
+
+    if (params->process_rank == 0)
+    {
+        printf("\nSimulation done!\n");
+    }
 
     MPI_Finalize();
     return 0;

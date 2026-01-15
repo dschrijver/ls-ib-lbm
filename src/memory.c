@@ -64,4 +64,7 @@ void allocate_fields(SimulationBag *sim)
     fields->Fx = (double *)malloc(malloc_size);
     fields->Fy = (double *)malloc(malloc_size);
     fields->Fz = (double *)malloc(malloc_size);
+    fields->Fx_grav = (double *)malloc(malloc_size);
+    fields->Fy_grav = (double *)malloc(malloc_size);
+    fields->Fz_grav = (double *)malloc(malloc_size);
 }

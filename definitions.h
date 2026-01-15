@@ -8,4 +8,9 @@
 #define YPERIODIC
 #define ZPERIODIC
 
+// --------------------------
+//     Initial conditions    
+// --------------------------
+#define INI_POISEUILLE
+
 #endif

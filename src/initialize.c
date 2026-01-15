@@ -4,6 +4,7 @@
 
 #include "../include/datatypes.h"
 #include "../definitions.h"
+#include "../include/utils.h"
 #include "../include/initialize.h"
 
 void initialize_MPI(ParamBag *params)
@@ -34,5 +35,92 @@ void initialize_MPI(ParamBag *params)
 
         MPI_Finalize();
         exit(1);
+    }
+}
+
+void initialize_fields(SimulationBag *sim)
+{
+    ParamBag *params = sim->params;
+    FieldBag *fields = sim->fields;
+    Stencil *stencil = sim->stencil;
+
+    int NY = params->NY;
+    int NZ = params->NZ;
+
+    int i_start = params->i_start;
+    int i_end = params->i_end;
+
+    double rho_0 = params->rho_0;
+
+    double cs2 = stencil->cs2;
+
+    double *rho = fields->rho;
+    double *pressure = fields->pressure;
+    double *u = fields->u;
+    double *v = fields->v;
+    double *w = fields->w;
+
+#ifdef INI_POISEUILLE
+    FOR_DOMAIN
+    {
+        u[INDEX(i, j, k)] = 0.0;
+        v[INDEX(i, j, k)] = 0.0;
+        w[INDEX(i, j, k)] = 0.0;
+        rho[INDEX(i, j, k)] = rho_0;
+    }
+#endif
+
+    FOR_DOMAIN
+    {
+        pressure[INDEX(i, j, k)] = rho[INDEX(i, j, k)] * cs2;
+    }
+}
+
+void initialize_distribution(SimulationBag *sim)
+{
+    ParamBag *params = sim->params;
+    DistributionBag *dists = sim->dists;
+    FieldBag *fields = sim->fields;
+    Stencil *stencil = sim->stencil;
+
+    double rho_i, uhat, vhat, what, uc, u2;
+
+    int NY = params->NY;
+    int NZ = params->NZ;
+    int NP = stencil->NP;
+
+    int i_start = params->i_start;
+    int i_end = params->i_end;
+
+    double cs2 = stencil->cs2;
+    int *cx = stencil->cx;
+    int *cy = stencil->cy;
+    int *cz = stencil->cz;
+    double *wp = stencil->wp;
+
+    double *rho = fields->rho;
+    double *u = fields->u;
+    double *v = fields->v;
+    double *w = fields->w;
+
+    double *Fx = fields->Fx;
+    double *Fy = fields->Fy;
+    double *Fz = fields->Fz;
+
+    double *f1 = dists->f1;
+
+    FOR_DOMAIN
+    {
+        rho_i = rho[INDEX(i, j, k)];
+        uhat = u[INDEX(i, j, k)] - 1.0 / (2.0 * rho_i) * Fx[INDEX(i, j, k)];
+        vhat = v[INDEX(i, j, k)] - 1.0 / (2.0 * rho_i) * Fy[INDEX(i, j, k)];
+        what = w[INDEX(i, j, k)] - 1.0 / (2.0 * rho_i) * Fz[INDEX(i, j, k)];
+        u2 = uhat * uhat + vhat * vhat + what * what;
+
+        for (int p = 0; p < NP; p++)
+        {
+            uc = uhat * (double)cx[p] + vhat * (double)cy[p] + what * (double)cz[p];
+            f1[INDEX_F(i, j, k, p)] = rho_i * wp[p] * (uc / cs2 + uc * uc / (2.0 * cs2 * cs2) - u2 / (2.0 * cs2));
+        }
     }
 }

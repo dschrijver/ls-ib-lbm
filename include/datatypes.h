@@ -59,6 +59,10 @@ typedef struct FieldBag
     double *Fx;
     double *Fy;
     double *Fz;
+
+    double *Fx_grav;
+    double *Fy_grav;
+    double *Fz_grav;
 } FieldBag;
 
 typedef struct Stencil
