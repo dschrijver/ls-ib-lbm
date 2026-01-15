@@ -19,10 +19,13 @@ typedef struct ParamBag
     int NY;   
     int NZ;    
 
-    // Relaxation times
+    // Relaxation time
     double tau;
+
+    // Starting density
     double rho_0;
 
+    // Gravity
     double gx;
     double gy;
     double gz;
@@ -77,6 +80,7 @@ typedef struct Stencil
     double *wp;
     int *p_bounceback;
 
+    // NEBB parameters
     double C_norm;
     double C_par;
 } Stencil;

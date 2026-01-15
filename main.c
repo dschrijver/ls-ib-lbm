@@ -13,6 +13,8 @@
 #include "include/communicate.h"
 #include "include/stream.h"
 #include "include/fields.h"
+#include "definitions.h"
+#include "include/wetnode.h"
 
 int main(int argc, char **argv)
 {
@@ -89,6 +91,12 @@ int main(int argc, char **argv)
         TIME("> Streaming...",
             stream_distributions(sim);
         )
+
+#ifdef WETNODE
+        TIME("> Wetnode boundary conditions...",
+            wetnode_boundary_conditions(sim);
+        )
+#endif
 
         TIME("> Computing macroscopic fields...",
             extract_moments(sim);
