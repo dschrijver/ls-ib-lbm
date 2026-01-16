@@ -1,6 +1,7 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#define DS_PI 3.14159265358979323846
 #define INDEX(i, j, k) (NY * NZ * (i + 2 - i_start) + NZ * (j) + (k))
 #define INDEX_F(i, j, k, p) (NY * NZ * NP * (i + 1 - i_start) + NZ * NP * (j) + NP * (k) + (p))
 

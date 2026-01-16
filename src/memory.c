@@ -3,18 +3,20 @@
 #include "../include/datatypes.h"
 #include "../include/memory.h"
 
-void allocate_bags(SimulationBag **sim, DistributionBag **dists, FieldBag **fields, ParamBag **params, Stencil **stencil)
+void allocate_bags(SimulationBag **sim, DistributionBag **dists, FieldBag **fields, ParamBag **params, Stencil **stencil, LSMBag **lsm)
 {
     *sim = (SimulationBag *)malloc(sizeof(SimulationBag));
     *dists = (DistributionBag *)malloc(sizeof(DistributionBag));
     *fields = (FieldBag *)malloc(sizeof(FieldBag));
     *params = (ParamBag *)malloc(sizeof(ParamBag));
     *stencil = (Stencil *)malloc(sizeof(Stencil));
+    *lsm = (LSMBag *)malloc(sizeof(LSMBag));
 
     (*sim)->params = (*params);
     (*sim)->dists = (*dists);
     (*sim)->fields = (*fields);
     (*sim)->stencil = (*stencil);
+    (*sim)->lsm = (*lsm);
 }
 
 void allocate_stencil(SimulationBag *sim)

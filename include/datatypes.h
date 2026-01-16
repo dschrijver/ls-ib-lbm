@@ -30,6 +30,9 @@ typedef struct ParamBag
     double gy;
     double gz;
 
+    // LSM
+    int N_connections_bulk;
+
     // MPI
     int number_of_processes;  ///< Stores number of processes
     int process_rank;         ///< Process rank
@@ -85,12 +88,82 @@ typedef struct Stencil
     double C_par;
 } Stencil;
 
+typedef struct LSMParticle
+{
+    int id;
+
+    double x; 
+    double y; 
+    double z; 
+
+    double u; 
+    double v; 
+    double w; 
+
+    double u_predict; 
+    double v_predict;
+    double w_predict; 
+
+    double Fx_ext;
+    double Fy_ext; 
+    double Fz_ext; 
+
+    double Fx_spring; 
+    double Fy_spring; 
+    double Fz_spring; 
+
+    double Fx_damp; 
+    double Fy_damp;
+    double Fz_damp;
+
+    double Fx_FSI;
+    double Fy_FSI;
+    double Fz_FSI; 
+
+    double Fx; 
+    double Fy;
+    double Fz;
+
+    int N_connections; 
+    double chi;     
+
+    struct LSMParticle *next;     
+} LSMParticle;
+
+typedef struct LSMSpring
+{
+    int id; 
+
+    struct LSMParticle *particle_1; 
+    struct LSMParticle *particle_2; 
+
+    int particle_1_id;
+    int particle_2_id;
+
+    double l_eq;                    
+    double S;                 
+
+    int active; 
+
+    struct LSMSpring *next; 
+} LSMSpring;
+
+typedef struct LSMBag
+{
+    int n_particles;
+    int n_springs;        
+
+    struct LSMParticle *particle_first;
+    struct LSMSpring *spring_first;         
+} LSMBag;
+
 typedef struct SimulationBag
 {
     struct ParamBag *params;
     struct DistributionBag *dists;
     struct FieldBag *fields;
     struct Stencil *stencil;
+    struct LSMBag *lsm;
 } SimulationBag;
 
 #endif

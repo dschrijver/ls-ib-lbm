@@ -25,8 +25,9 @@ int main(int argc, char **argv)
     FieldBag *fields;
     ParamBag *params;
     Stencil *stencil;
+    LSMBag *lsm;
 
-    allocate_bags(&sim, &dists, &fields, &params, &stencil);
+    allocate_bags(&sim, &dists, &fields, &params, &stencil, &lsm);
 
     set_params(params);
 
@@ -44,6 +45,8 @@ int main(int argc, char **argv)
     params->n_output = 0;
 
     initialize_fields(sim);
+
+    initialize_lsm(sim);
 
     evaluate_gravity_force(sim);
 

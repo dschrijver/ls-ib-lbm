@@ -5,6 +5,7 @@
 #include "../include/datatypes.h"
 #include "../definitions.h"
 #include "../include/utils.h"
+#include "../include/lsm.h"
 #include "../include/initialize.h"
 
 void initialize_MPI(ParamBag *params)
@@ -123,4 +124,55 @@ void initialize_distribution(SimulationBag *sim)
             f1[INDEX_F(i, j, k, p)] = rho_i * wp[p] * (uc / cs2 + uc * uc / (2.0 * cs2 * cs2) - u2 / (2.0 * cs2));
         }
     }
+}
+
+void initialize_lsm(SimulationBag *sim)
+{
+    ParamBag *params = sim->params;
+    LSMBag *lsm = sim->lsm;
+    FieldBag *fields = sim->fields;
+
+    double x, y, z, u_i, v_i, w_i;
+
+    int NY = params->NY;
+    int NZ = params->NZ;
+
+    int i_start = params->i_start;
+    int i_end = params->i_end;
+
+    double *u = fields->u;
+    double *v = fields->v;
+    double *w = fields->w;
+
+    lsm->n_particles = 0;
+    lsm->n_springs = 0;
+    lsm->particle_first = NULL;
+    lsm->spring_first = NULL;
+
+#ifdef INI_POISEUILLE
+    int x_left = params->NX / 2 - WIDTH / 2;
+    FOR_DOMAIN
+    {
+        if ((i >= x_left) && (i < x_left + WIDTH))
+        {
+            x = (double)i;
+#ifndef LEFT_NEBB_VELOCITY
+            x += 0.5;
+#endif
+            y = (double)j;
+#ifndef BOTTOM_NEBB_VELOCITY
+            y += 0.5;
+#endif
+            z = (double)k;
+#ifndef BACK_NEBB_VELOCITY
+            z += 0.5;
+#endif
+            u_i = u[INDEX(i, j, k)];
+            v_i = v[INDEX(i, j, k)];
+            w_i = w[INDEX(i, j, k)];
+
+            create_particle(x, y, z, u_i, v_i, w_i, lsm);
+        }
+    }
+#endif
 }
