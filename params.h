@@ -1,14 +1,17 @@
 #ifndef PARAMS_H
 #define PARAMS_H
 
+#include <math.h>
+
 #include "include/datatypes.h"
+#include "include/utils.h"
 
 static inline void set_params(ParamBag *params)
 {
     // General parameters
-    params->NTIME = 250000;
-    params->NSTORE = 2500;
-    params->NLOG = 250;
+    params->NTIME = 10;
+    params->NSTORE = 1;
+    params->NLOG = 1;
     params->NX = 100;
     params->NY = 20;
     params->NZ = 1;
@@ -25,7 +28,12 @@ static inline void set_params(ParamBag *params)
     params->gz = 0.0;
 
     // LSM
-    params->N_connections_bulk = 18;
+    params->N_connections_bulk = 8;
+    params->r_max = sqrt((double)(params->N_connections_bulk + 1)/DS_PI); // 2D
+    // params->r_max = pow((double)(params->N_connections_bulk + 1) / (4.0 / 3.0 * DS_PI), 1.0 / 3.0); // 3D
+    params->m = 1.0;
+    params->k = 2.0e-3;
+    params->c = 5e-2;
 }
 
 #endif

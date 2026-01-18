@@ -32,6 +32,10 @@ typedef struct ParamBag
 
     // LSM
     int N_connections_bulk;
+    double r_max;
+    double m;
+    double k; 
+    double c;
 
     // MPI
     int number_of_processes;  ///< Stores number of processes
@@ -69,6 +73,14 @@ typedef struct FieldBag
     double *Fx_grav;
     double *Fy_grav;
     double *Fz_grav;
+
+    double *Fx_IBM;
+    double *Fy_IBM;
+    double *Fz_IBM;
+
+    double *Fx_rigid;
+    double *Fy_rigid;
+    double *Fz_rigid;
 } FieldBag;
 
 typedef struct Stencil
@@ -90,8 +102,6 @@ typedef struct Stencil
 
 typedef struct LSMParticle
 {
-    int id;
-
     double x; 
     double y; 
     double z; 
@@ -103,6 +113,10 @@ typedef struct LSMParticle
     double u_predict; 
     double v_predict;
     double w_predict; 
+
+    double u_fluid;
+    double v_fluid;
+    double w_fluid;
 
     double Fx_ext;
     double Fy_ext; 
@@ -116,45 +130,52 @@ typedef struct LSMParticle
     double Fy_damp;
     double Fz_damp;
 
-    double Fx_FSI;
-    double Fy_FSI;
-    double Fz_FSI; 
+    double Fx_IBM;
+    double Fy_IBM;
+    double Fz_IBM; 
 
     double Fx; 
     double Fy;
     double Fz;
 
-    int N_connections; 
-    double chi;     
+    double weight;
 
-    struct LSMParticle *next;     
+    int N_connections; 
+    double chi;
 } LSMParticle;
 
 typedef struct LSMSpring
 {
-    int id; 
-
-    struct LSMParticle *particle_1; 
-    struct LSMParticle *particle_2; 
-
-    int particle_1_id;
-    int particle_2_id;
+    int p1;
+    int p2;
 
     double l_eq;                    
     double S;                 
 
     int active; 
-
-    struct LSMSpring *next; 
 } LSMSpring;
 
 typedef struct LSMBag
 {
     int n_particles;
-    int n_springs;        
+    int n_springs;
 
-    struct LSMParticle *particle_first;
-    struct LSMSpring *spring_first;         
+    int p_start;
+    int p_end;
+    int p_proc;
+
+    int s_start;
+    int s_end;
+    int s_proc;
+
+    int *p_recvcounts;
+    int *p_displs;
+
+    int *s_recvcounts;
+    int *s_displs;
+
+    struct LSMParticle *particles;
+    struct LSMSpring *springs;         
 } LSMBag;
 
 typedef struct SimulationBag

@@ -15,6 +15,7 @@
 #include "include/fields.h"
 #include "definitions.h"
 #include "include/wetnode.h"
+#include "include/lsm.h"
 
 int main(int argc, char **argv)
 {
@@ -46,7 +47,9 @@ int main(int argc, char **argv)
 
     initialize_fields(sim);
 
+#ifdef LSIBM
     initialize_lsm(sim);
+#endif
 
     evaluate_gravity_force(sim);
 
@@ -101,11 +104,41 @@ int main(int argc, char **argv)
         )
 #endif
 
-        TIME("> Computing macroscopic fields...",
+        TIME("> Extracting moments...",
             extract_moments(sim);
+        )
+
+        TIME("> Evaluating fluid forces...",
             evaluate_gravity_force(sim);
+#ifdef LSIBM
+            update_preliminary_velocity(sim);
+#endif
+        )
+
+#ifdef LSIBM
+        TIME("> Updating particle positions...", 
+            update_particle_positions(sim);
+            update_particle_predicted_velocities(sim);
+        )
+
+        TIME("> Evaluating particle forces...",
+            evaluate_particle_external_forces(sim);
+            evaluate_spring_forces(sim);
+            evaluate_damping_forces(sim);
+            update_particle_preliminary_velocities(sim); 
+        )
+
+        TIME("> Evaluating FSI forces...",
+            evaluate_particle_weights(sim);
+            evaluate_FSI_forces(sim);
+        )
+#endif
+
+        TIME("> Computing final velocity", 
             evaluate_total_force(sim);
+#ifndef LSIBM
             update_final_velocity(sim);
+#endif
         )
 
         duration_timestep = MPI_Wtime() - start_timestep;

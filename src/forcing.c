@@ -53,10 +53,18 @@ void evaluate_total_force(SimulationBag *sim)
     double *Fy_grav = fields->Fy_grav;
     double *Fz_grav = fields->Fz_grav;
 
+    double *Fx_IBM = fields->Fx_IBM;
+    double *Fy_IBM = fields->Fy_IBM;
+    double *Fz_IBM = fields->Fz_IBM;
+
+    double *Fx_rigid = fields->Fx_rigid;
+    double *Fy_rigid = fields->Fy_rigid;
+    double *Fz_rigid = fields->Fz_rigid;
+
     FOR_DOMAIN
     {
-        Fx[INDEX(i, j, k)] = Fx_grav[INDEX(i, j, k)];
-        Fy[INDEX(i, j, k)] = Fy_grav[INDEX(i, j, k)];
-        Fz[INDEX(i, j, k)] = Fz_grav[INDEX(i, j, k)];
+        Fx[INDEX(i, j, k)] = Fx_grav[INDEX(i, j, k)] + Fx_IBM[INDEX(i, j, k)] + Fx_rigid[INDEX(i, j, k)];
+        Fy[INDEX(i, j, k)] = Fy_grav[INDEX(i, j, k)] + Fy_IBM[INDEX(i, j, k)] + Fy_rigid[INDEX(i, j, k)];
+        Fz[INDEX(i, j, k)] = Fz_grav[INDEX(i, j, k)] + Fz_IBM[INDEX(i, j, k)] + Fz_rigid[INDEX(i, j, k)];
     }
 }

@@ -130,49 +130,86 @@ void initialize_lsm(SimulationBag *sim)
 {
     ParamBag *params = sim->params;
     LSMBag *lsm = sim->lsm;
-    FieldBag *fields = sim->fields;
 
-    double x, y, z, u_i, v_i, w_i;
+    double x, y, z;
 
     int NY = params->NY;
     int NZ = params->NZ;
 
-    int i_start = params->i_start;
-    int i_end = params->i_end;
-
-    double *u = fields->u;
-    double *v = fields->v;
-    double *w = fields->w;
-
     lsm->n_particles = 0;
     lsm->n_springs = 0;
-    lsm->particle_first = NULL;
-    lsm->spring_first = NULL;
+    lsm->particles = NULL;
+    lsm->springs = NULL;
 
 #ifdef INI_POISEUILLE
     int x_left = params->NX / 2 - WIDTH / 2;
-    FOR_DOMAIN
+    for (int i = x_left; i < x_left + WIDTH; i++)
     {
-        if ((i >= x_left) && (i < x_left + WIDTH))
+        for (int j = 0; j < NY; j++)
         {
-            x = (double)i;
+            for (int k = 0; k < NZ; k++)
+            {
+                x = (double)i;
 #ifndef LEFT_NEBB_VELOCITY
-            x += 0.5;
+                x += 0.5;
 #endif
-            y = (double)j;
+                y = (double)j;
 #ifndef BOTTOM_NEBB_VELOCITY
-            y += 0.5;
+                y += 0.5;
 #endif
-            z = (double)k;
+                z = (double)k;
 #ifndef BACK_NEBB_VELOCITY
-            z += 0.5;
+                z += 0.5;
 #endif
-            u_i = u[INDEX(i, j, k)];
-            v_i = v[INDEX(i, j, k)];
-            w_i = w[INDEX(i, j, k)];
 
-            create_particle(x, y, z, u_i, v_i, w_i, lsm);
+                create_particle(x, y, z, 0.0, 0.0, 0.0, lsm);
+            }
         }
     }
 #endif
+
+    add_springs(sim);
+
+    int n_particles = lsm->n_particles;
+    int n_springs = lsm->n_springs;
+
+    if (n_particles < params->number_of_processes)
+    {
+        if (params->process_rank == 0)
+        {
+            printf("The number of processes (%d) must be smaller than the number of LSM particles (%d)!\n", params->number_of_processes, n_particles);
+            fflush(stdout);
+        }
+
+        MPI_Finalize();
+        exit(1);
+    }
+
+    compute_chi(sim);
+
+    // MPI for LSM
+    lsm->p_start = (float)(params->process_rank) / (float)params->number_of_processes * n_particles;
+    lsm->p_end = (float)(params->process_rank + 1) / (float)params->number_of_processes * n_particles;
+    lsm->p_proc = lsm->p_end - lsm->p_start;
+
+    lsm->s_start = (float)(params->process_rank) / (float)params->number_of_processes * n_springs;
+    lsm->s_end = (float)(params->process_rank + 1) / (float)params->number_of_processes * n_springs;
+    lsm->s_proc = lsm->s_end - lsm->s_start;
+
+    lsm->p_recvcounts = (int *)malloc(params->number_of_processes * sizeof(int));
+    lsm->p_displs = (int *)malloc(params->number_of_processes * sizeof(int));
+
+    lsm->s_recvcounts = (int *)malloc(params->number_of_processes * sizeof(int));
+    lsm->s_displs = (int *)malloc(params->number_of_processes * sizeof(int));
+
+    MPI_Allgather(&lsm->p_proc, 1, MPI_INT, lsm->p_recvcounts, 1, MPI_INT, params->comm_xslices);
+    MPI_Allgather(&lsm->s_proc, 1, MPI_INT, lsm->s_recvcounts, 1, MPI_INT, params->comm_xslices);
+
+    lsm->p_displs[0] = 0;
+    lsm->s_displs[0] = 0;
+    for (int i = 1; i < params->number_of_processes; i++)
+    {
+        lsm->p_displs[i] = lsm->p_displs[i - 1] + lsm->p_recvcounts[i - 1];
+        lsm->s_displs[i] = lsm->s_displs[i - 1] + lsm->s_recvcounts[i - 1];
+    }
 }

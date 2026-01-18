@@ -1,5 +1,6 @@
 #include "../include/datatypes.h"
 #include "../include/utils.h"
+#include "../definitions.h"
 #include "../include/fields.h"
 
 void extract_moments(SimulationBag *sim)
@@ -81,9 +82,40 @@ void update_final_velocity(SimulationBag *sim)
     FOR_DOMAIN
     {
         rho_i = rho[INDEX(i, j, k)];
-
         u[INDEX(i, j, k)] += 1.0 / (2.0 * rho_i) * Fx[INDEX(i, j, k)];
         v[INDEX(i, j, k)] += 1.0 / (2.0 * rho_i) * Fy[INDEX(i, j, k)];
         w[INDEX(i, j, k)] += 1.0 / (2.0 * rho_i) * Fz[INDEX(i, j, k)];
+    }
+}
+
+void update_preliminary_velocity(SimulationBag *sim)
+{
+    ParamBag *params = sim->params;
+    FieldBag *fields = sim->fields;
+
+    double rho_i;
+
+    int NY = params->NY;
+    int NZ = params->NZ;
+
+    int i_start = params->i_start;
+    int i_end = params->i_end;
+
+    double *rho = fields->rho;
+    double *u = fields->u;
+    double *v = fields->v;
+    double *w = fields->w;
+
+    double *Fx_grav = fields->Fx_grav;
+    double *Fy_grav = fields->Fy_grav;
+    double *Fz_grav = fields->Fz_grav;
+
+    FOR_DOMAIN
+    {
+        rho_i = rho[INDEX(i, j, k)];
+
+        u[INDEX(i, j, k)] += 1.0 / (2.0 * rho_i) * Fx_grav[INDEX(i, j, k)];
+        v[INDEX(i, j, k)] += 1.0 / (2.0 * rho_i) * Fy_grav[INDEX(i, j, k)];
+        w[INDEX(i, j, k)] += 1.0 / (2.0 * rho_i) * Fz_grav[INDEX(i, j, k)];
     }
 }

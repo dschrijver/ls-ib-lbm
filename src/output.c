@@ -26,6 +26,14 @@ void output_data(SimulationBag *sim)
     double *Fx_grav = fields->Fx_grav;
     double *Fy_grav = fields->Fy_grav;
     double *Fz_grav = fields->Fz_grav;
+    
+    double *Fx_IBM = fields->Fx_IBM;
+    double *Fy_IBM = fields->Fy_IBM;
+    double *Fz_IBM = fields->Fz_IBM;
+
+    double *Fx_rigid = fields->Fx_rigid;
+    double *Fy_rigid = fields->Fy_rigid;
+    double *Fz_rigid = fields->Fz_rigid;
 
     // Create file
     sprintf(filename, "data_%d.h5", params->n_output);
@@ -59,6 +67,14 @@ void output_data(SimulationBag *sim)
     output_field(Fx_grav, "Fx_grav", file_id, sim);
     output_field(Fy_grav, "Fy_grav", file_id, sim);
     output_field(Fz_grav, "Fz_grav", file_id, sim);
+
+    output_field(Fx_IBM, "Fx_IBM", file_id, sim);
+    output_field(Fy_IBM, "Fy_IBM", file_id, sim);
+    output_field(Fz_IBM, "Fz_IBM", file_id, sim);
+
+    output_field(Fx_rigid, "Fx_rigid", file_id, sim);
+    output_field(Fy_rigid, "Fy_rigid", file_id, sim);
+    output_field(Fz_rigid, "Fz_rigid", file_id, sim);
 
     // LSM group
     if (sim->lsm->n_particles > 0) {
@@ -122,202 +138,78 @@ void output_field(double *field, char *fieldname, hid_t loc_id, SimulationBag *s
 
 void output_lsm(hid_t loc_id, SimulationBag *sim) {
     LSMBag *lsm = sim->lsm;
-    ParamBag *params = sim->params;
 
     int n_particles = lsm->n_particles;
     int n_springs = lsm->n_springs;
 
-    // Write number of particles
-    hid_t scalar_space = H5Screate(H5S_SCALAR);
-    hid_t dset_scalar = H5Dcreate2(loc_id, "n_particles", H5T_NATIVE_INT, scalar_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    H5Dwrite(dset_scalar, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &n_particles);
-    H5Dclose(dset_scalar);
-    H5Sclose(scalar_space);
+    int p_start = lsm->p_start;
+    int p_end = lsm->p_end;
 
-    // Write number of particles
-    scalar_space = H5Screate(H5S_SCALAR);
-    dset_scalar = H5Dcreate2(loc_id, "n_springs", H5T_NATIVE_INT, scalar_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    H5Dwrite(dset_scalar, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &n_springs);
-    H5Dclose(dset_scalar);
-    H5Sclose(scalar_space);
+    int s_start = lsm->s_start;
+    int s_end = lsm->s_end;
 
-    // Create groups
-    hid_t gcpl_id = H5Pcreate(H5P_GROUP_CREATE);
-    hid_t particle_group_id = H5Gcreate2(loc_id, "Particles", H5P_DEFAULT, gcpl_id, H5P_DEFAULT);
-    hid_t spring_group_id = H5Gcreate2(loc_id, "Springs", H5P_DEFAULT, gcpl_id, H5P_DEFAULT);
-    H5Pclose(gcpl_id);
+    hid_t particle_type = H5Tcreate(H5T_COMPOUND, sizeof(LSMParticle));
 
-    // Find local particles
-    int particle_start = (float)(params->process_coords[0])/(float)params->number_of_processes*n_particles;
-    int particle_end = (float)(params->process_coords[0]+1)/(float)params->number_of_processes*n_particles;
-    int particles_proc = particle_end - particle_start;
+    H5Tinsert(particle_type, "x", HOFFSET(LSMParticle, x), H5T_NATIVE_DOUBLE);
+    H5Tinsert(particle_type, "y", HOFFSET(LSMParticle, y), H5T_NATIVE_DOUBLE);
+    H5Tinsert(particle_type, "z", HOFFSET(LSMParticle, z), H5T_NATIVE_DOUBLE);
 
-    int malloc_size = particles_proc*3*sizeof(double);
+    H5Tinsert(particle_type, "u", HOFFSET(LSMParticle, u), H5T_NATIVE_DOUBLE);
+    H5Tinsert(particle_type, "v", HOFFSET(LSMParticle, v), H5T_NATIVE_DOUBLE);
+    H5Tinsert(particle_type, "w", HOFFSET(LSMParticle, w), H5T_NATIVE_DOUBLE);
 
-    double *r = (double *)malloc(malloc_size);
-    double *v = (double *)malloc(malloc_size);
-    double *F = (double *)malloc(malloc_size);
-    double *F_ext = (double *)malloc(malloc_size);
-    double *F_spring = (double *)malloc(malloc_size);
-    double *F_damp = (double *)malloc(malloc_size);
-    double *F_FSI = (double *)malloc(malloc_size);
+    H5Tinsert(particle_type, "u_predict", HOFFSET(LSMParticle, u_predict), H5T_NATIVE_DOUBLE);
+    H5Tinsert(particle_type, "v_predict", HOFFSET(LSMParticle, v_predict), H5T_NATIVE_DOUBLE);
+    H5Tinsert(particle_type, "w_predict", HOFFSET(LSMParticle, w_predict), H5T_NATIVE_DOUBLE);
 
-    int *N_connections = (int *)malloc(particles_proc*sizeof(int));
-    double *chi = (double *)malloc(particles_proc*sizeof(double));
+    H5Tinsert(particle_type, "u_fluid", HOFFSET(LSMParticle, u_fluid), H5T_NATIVE_DOUBLE);
+    H5Tinsert(particle_type, "v_fluid", HOFFSET(LSMParticle, v_fluid), H5T_NATIVE_DOUBLE);
+    H5Tinsert(particle_type, "w_fluid", HOFFSET(LSMParticle, w_fluid), H5T_NATIVE_DOUBLE);
 
-    int p = 0;
-    int p_local = 0;
-    LSMParticle *particle = lsm->particle_first;
-    while (particle != NULL) {
-        particle->id = p;
+    H5Tinsert(particle_type, "Fx_ext", HOFFSET(LSMParticle, Fx_ext), H5T_NATIVE_DOUBLE);
+    H5Tinsert(particle_type, "Fy_ext", HOFFSET(LSMParticle, Fy_ext), H5T_NATIVE_DOUBLE);
+    H5Tinsert(particle_type, "Fz_ext", HOFFSET(LSMParticle, Fz_ext), H5T_NATIVE_DOUBLE);
 
-        if ((particle->id >= particle_start) && (particle->id < particle_end)) {
+    H5Tinsert(particle_type, "Fx_spring", HOFFSET(LSMParticle, Fx_spring), H5T_NATIVE_DOUBLE);
+    H5Tinsert(particle_type, "Fy_spring", HOFFSET(LSMParticle, Fy_spring), H5T_NATIVE_DOUBLE);
+    H5Tinsert(particle_type, "Fz_spring", HOFFSET(LSMParticle, Fz_spring), H5T_NATIVE_DOUBLE);
 
-            r[3*p_local] = particle->x;
-            r[3*p_local + 1] = particle->y;
-            r[3*p_local + 2] = particle->z;
+    H5Tinsert(particle_type, "Fx_damp", HOFFSET(LSMParticle, Fx_damp), H5T_NATIVE_DOUBLE);
+    H5Tinsert(particle_type, "Fy_damp", HOFFSET(LSMParticle, Fy_damp), H5T_NATIVE_DOUBLE);
+    H5Tinsert(particle_type, "Fz_damp", HOFFSET(LSMParticle, Fz_damp), H5T_NATIVE_DOUBLE);
 
-            v[3*p_local] = particle->u;
-            v[3*p_local + 1] = particle->v;
-            v[3*p_local + 2] = particle->w;
+    H5Tinsert(particle_type, "Fx_IBM", HOFFSET(LSMParticle, Fx_IBM), H5T_NATIVE_DOUBLE);
+    H5Tinsert(particle_type, "Fy_IBM", HOFFSET(LSMParticle, Fy_IBM), H5T_NATIVE_DOUBLE);
+    H5Tinsert(particle_type, "Fz_IBM", HOFFSET(LSMParticle, Fz_IBM), H5T_NATIVE_DOUBLE);
 
-            F[3*p_local] = particle->Fx;
-            F[3*p_local + 1] = particle->Fy;
-            F[3*p_local + 2] = particle->Fz;
+    H5Tinsert(particle_type, "Fx", HOFFSET(LSMParticle, Fx), H5T_NATIVE_DOUBLE);
+    H5Tinsert(particle_type, "Fy", HOFFSET(LSMParticle, Fy), H5T_NATIVE_DOUBLE);
+    H5Tinsert(particle_type, "Fz", HOFFSET(LSMParticle, Fz), H5T_NATIVE_DOUBLE);
 
-            F_ext[3*p_local] = particle->Fx_ext;
-            F_ext[3*p_local + 1] = particle->Fy_ext;
-            F_ext[3*p_local + 2] = particle->Fz_ext;
+    H5Tinsert(particle_type, "weight", HOFFSET(LSMParticle, weight), H5T_NATIVE_DOUBLE);
 
-            F_spring[3*p_local] = particle->Fx_spring;
-            F_spring[3*p_local + 1] = particle->Fy_spring;
-            F_spring[3*p_local + 2] = particle->Fz_spring;
+    H5Tinsert(particle_type, "N_connections", HOFFSET(LSMParticle, N_connections), H5T_NATIVE_INT);
+    H5Tinsert(particle_type, "chi", HOFFSET(LSMParticle, chi), H5T_NATIVE_DOUBLE);
 
-            F_damp[3*p_local] = particle->Fx_damp;
-            F_damp[3*p_local + 1] = particle->Fy_damp;
-            F_damp[3*p_local + 2] = particle->Fz_damp;
+    hid_t spring_type = H5Tcreate(H5T_COMPOUND, sizeof(LSMSpring));
 
-            F_FSI[3*p_local] = particle->Fx_FSI;
-            F_FSI[3*p_local + 1] = particle->Fy_FSI;
-            F_FSI[3*p_local + 2] = particle->Fz_FSI;
-            
-            N_connections[p_local] = particle->N_connections;
-            chi[p_local] = particle->chi;
+    H5Tinsert(spring_type, "p1", HOFFSET(LSMSpring, p1), H5T_NATIVE_INT);
+    H5Tinsert(spring_type, "p2", HOFFSET(LSMSpring, p2), H5T_NATIVE_INT);
 
-            p_local++;
-        }
+    H5Tinsert(spring_type, "l_eq", HOFFSET(LSMSpring, l_eq), H5T_NATIVE_DOUBLE);
+    H5Tinsert(spring_type, "S", HOFFSET(LSMSpring, S), H5T_NATIVE_DOUBLE);
 
-        p++;
-        particle = particle->next;
-    }
+    H5Tinsert(spring_type, "active", HOFFSET(LSMSpring, active), H5T_NATIVE_INT);
+    
+    output_lsm_field(&lsm->particles[p_start], "Particles", particle_type, p_start, p_end, n_particles, loc_id);
+    output_lsm_field(&lsm->springs[s_start], "Springs", spring_type, s_start, s_end, n_springs, loc_id);
 
-    int spring_start = (float)(params->process_coords[0])/(float)params->number_of_processes*n_springs;
-    int spring_end = (float)(params->process_coords[0]+1)/(float)params->number_of_processes*n_springs;
-    int springs_proc = spring_end - spring_start;
-
-    int *particle_1 = (int *)malloc(springs_proc*sizeof(int));
-    int *particle_2 = (int *)malloc(springs_proc*sizeof(int));
-
-    double *l_eq = (double *)malloc(springs_proc*sizeof(double));
-    double *S = (double *)malloc(springs_proc*sizeof(double));
-
-    int *active = (int *)malloc(springs_proc*sizeof(int));
-
-    int s = 0;
-    int s_local = 0;
-    LSMSpring *spring = lsm->spring_first;
-    while (spring != NULL) {
-
-        if ((s >= spring_start) && (s < spring_end)) {
-            particle_1[s_local] = spring->particle_1->id;
-            particle_2[s_local] = spring->particle_2->id;
-
-            l_eq[s_local] = spring->l_eq;
-            S[s_local] = spring->S;
-
-            active[s_local] = spring->active;
-
-            s_local++;
-        }
-
-        s++;
-        spring = spring->next;
-    }
-
-    output_lsm_field(r, "r", particle_start, particle_end, particle_group_id, sim);
-    output_lsm_field(v, "v", particle_start, particle_end, particle_group_id, sim);
-    output_lsm_field(F, "F", particle_start, particle_end, particle_group_id, sim);
-    output_lsm_field(F_ext, "F_ext", particle_start, particle_end, particle_group_id, sim);
-    output_lsm_field(F_spring, "F_spring", particle_start, particle_end, particle_group_id, sim);
-    output_lsm_field(F_damp, "F_damp", particle_start, particle_end, particle_group_id, sim);
-    output_lsm_field(F_FSI, "F_FSI", particle_start, particle_end, particle_group_id, sim);
-    output_lsm_field_1d(N_connections, "N_connections", particle_start, particle_end, n_particles, H5T_NATIVE_INT, particle_group_id);
-    output_lsm_field_1d(chi, "chi", particle_start, particle_end, n_particles, H5T_NATIVE_DOUBLE, particle_group_id);
-
-    output_lsm_field_1d(particle_1, "particle_1", spring_start, spring_end, n_springs, H5T_NATIVE_INT, spring_group_id);
-    output_lsm_field_1d(particle_2, "particle_2", spring_start, spring_end, n_springs, H5T_NATIVE_INT, spring_group_id);
-    output_lsm_field_1d(l_eq, "l_eq", spring_start, spring_end, n_springs, H5T_NATIVE_DOUBLE, spring_group_id);
-    output_lsm_field_1d(S, "S", spring_start, spring_end, n_springs, H5T_NATIVE_DOUBLE, spring_group_id);
-    output_lsm_field_1d(active, "active", spring_start, spring_end, n_springs, H5T_NATIVE_INT, spring_group_id);
-
-    // Close groups
-    H5Gclose(particle_group_id);
-    H5Gclose(spring_group_id);
-
-    free(r);
-    free(v);
-    free(F);
-    free(F_ext);
-    free(F_spring);
-    free(F_damp);
-    free(F_FSI);
-    free(N_connections);
-    free(chi);
-
-    free(particle_1);
-    free(particle_2);
-    free(l_eq);
-    free(S);
-    free(active);
+    H5Tclose(particle_type);
+    H5Tclose(spring_type);
 }
 
-void output_lsm_field(double* field, char *fieldname, int start, int end, hid_t loc_id, SimulationBag *sim) {
-    LSMBag *lsm = sim->lsm;
-
-    int n_particles = lsm->n_particles;
-
-     // Space occupied in file
-    hsize_t dims_file[2] = {n_particles, 3};
-    hid_t filespace = H5Screate_simple(2, dims_file, NULL);
-
-    // Space occupied in processor memory
-    hsize_t dims_proc[2] = {end-start, 3};
-    hid_t memspace  = H5Screate_simple(2, dims_proc, NULL);
-
-    // Create dataset
-    hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
-    hid_t dset_id = H5Dcreate2(loc_id, fieldname, H5T_NATIVE_DOUBLE, filespace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT);
-    H5Pclose(dcpl_id);
-    H5Sclose(filespace);
-
-    // File hyperslab
-    hsize_t start_file[2] = {start, 0};
-    hsize_t count[2] = {end-start, 3};   
-    filespace = H5Dget_space(dset_id);
-    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, start_file, NULL, count, NULL);
-
-    // Write data
-    hid_t dxpl_id = H5Pcreate(H5P_DATASET_XFER);
-    H5Pset_dxpl_mpio(dxpl_id, H5FD_MPIO_COLLECTIVE);
-    H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, memspace, filespace, dxpl_id, field);
-
-    H5Dclose(dset_id);
-    H5Sclose(memspace);
-    H5Pclose(dxpl_id);
-    H5Sclose(filespace);
-}
-
-void output_lsm_field_1d(void* field, char *fieldname, int start, int end, int total, hid_t data_type, hid_t loc_id) {
+void output_lsm_field(void* field, char *fieldname, hid_t field_type, int start, int end, int total, hid_t loc_id) 
+{
      // Space occupied in file
     hsize_t dims_file[1] = {total};
     hid_t filespace = H5Screate_simple(1, dims_file, NULL);
@@ -328,20 +220,20 @@ void output_lsm_field_1d(void* field, char *fieldname, int start, int end, int t
 
     // Create dataset
     hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
-    hid_t dset_id = H5Dcreate2(loc_id, fieldname, data_type, filespace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT);
+    hid_t dset_id = H5Dcreate2(loc_id, fieldname, field_type, filespace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT);
     H5Pclose(dcpl_id);
     H5Sclose(filespace);
 
     // File hyperslab
-    hsize_t start_file[1] = {start};
-    hsize_t count[1] = {end-start};   
+    hsize_t file_start[1] = {start};
+    hsize_t count[1] = {end-start};
     filespace = H5Dget_space(dset_id);
-    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, start_file, NULL, count, NULL);
+    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, file_start, NULL, count, NULL);
 
     // Write data
     hid_t dxpl_id = H5Pcreate(H5P_DATASET_XFER);
     H5Pset_dxpl_mpio(dxpl_id, H5FD_MPIO_COLLECTIVE);
-    H5Dwrite(dset_id, data_type, memspace, filespace, dxpl_id, field);
+    H5Dwrite(dset_id, field_type, memspace, filespace, dxpl_id, field);
 
     H5Dclose(dset_id);
     H5Sclose(memspace);

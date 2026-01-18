@@ -1,6 +1,11 @@
 #ifndef DEFINITIONS_H
 #define DEFINITIONS_H
 
+// ---------------
+//     Methods    
+// ---------------
+#define LSIBM
+
 // ---------------------------
 //     Boundary conditions        
 // ---------------------------

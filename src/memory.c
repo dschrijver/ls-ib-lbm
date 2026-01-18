@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 
 #include "../include/datatypes.h"
 #include "../include/memory.h"
@@ -60,13 +61,30 @@ void allocate_fields(SimulationBag *sim)
 
     fields->rho = (double *)malloc(malloc_size);
     fields->pressure = (double *)malloc(malloc_size);
+    
     fields->u = (double *)malloc(malloc_size);
     fields->v = (double *)malloc(malloc_size);
     fields->w = (double *)malloc(malloc_size);
+
     fields->Fx = (double *)malloc(malloc_size);
     fields->Fy = (double *)malloc(malloc_size);
     fields->Fz = (double *)malloc(malloc_size);
+
     fields->Fx_grav = (double *)malloc(malloc_size);
     fields->Fy_grav = (double *)malloc(malloc_size);
     fields->Fz_grav = (double *)malloc(malloc_size);
+    fields->Fx_IBM = (double *)malloc(malloc_size);
+    fields->Fy_IBM = (double *)malloc(malloc_size);
+    fields->Fz_IBM = (double *)malloc(malloc_size);
+    fields->Fx_rigid = (double *)malloc(malloc_size);
+    fields->Fy_rigid = (double *)malloc(malloc_size);
+    fields->Fz_rigid = (double *)malloc(malloc_size);
+
+    memset(fields->Fx_IBM, 0, malloc_size);
+    memset(fields->Fy_IBM, 0, malloc_size);
+    memset(fields->Fz_IBM, 0, malloc_size);
+
+    memset(fields->Fx_rigid, 0, malloc_size);
+    memset(fields->Fy_rigid, 0, malloc_size);
+    memset(fields->Fz_rigid, 0, malloc_size);
 }

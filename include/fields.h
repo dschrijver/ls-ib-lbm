@@ -5,5 +5,6 @@
 
 void extract_moments(SimulationBag *sim);
 void update_final_velocity(SimulationBag *sim);
+void update_preliminary_velocity(SimulationBag *sim);
 
 #endif
