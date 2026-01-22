@@ -129,12 +129,16 @@ int main(int argc, char **argv)
         )
 
         TIME("> Evaluating FSI forces...",
-            evaluate_particle_weights(sim);
             evaluate_FSI_forces(sim);
+        )
+
+        TIME("> Updating final particle velocities...",
+            compute_particle_final_velocity(sim);
+            compute_particle_total_force(sim);
         )
 #endif
 
-        TIME("> Computing final velocity", 
+        TIME("> Evaluating final fluid velocity...", 
             evaluate_total_force(sim);
 #ifndef LSIBM
             update_final_velocity(sim);

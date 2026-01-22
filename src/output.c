@@ -162,10 +162,6 @@ void output_lsm(hid_t loc_id, SimulationBag *sim) {
     H5Tinsert(particle_type, "v_predict", HOFFSET(LSMParticle, v_predict), H5T_NATIVE_DOUBLE);
     H5Tinsert(particle_type, "w_predict", HOFFSET(LSMParticle, w_predict), H5T_NATIVE_DOUBLE);
 
-    H5Tinsert(particle_type, "u_fluid", HOFFSET(LSMParticle, u_fluid), H5T_NATIVE_DOUBLE);
-    H5Tinsert(particle_type, "v_fluid", HOFFSET(LSMParticle, v_fluid), H5T_NATIVE_DOUBLE);
-    H5Tinsert(particle_type, "w_fluid", HOFFSET(LSMParticle, w_fluid), H5T_NATIVE_DOUBLE);
-
     H5Tinsert(particle_type, "Fx_ext", HOFFSET(LSMParticle, Fx_ext), H5T_NATIVE_DOUBLE);
     H5Tinsert(particle_type, "Fy_ext", HOFFSET(LSMParticle, Fy_ext), H5T_NATIVE_DOUBLE);
     H5Tinsert(particle_type, "Fz_ext", HOFFSET(LSMParticle, Fz_ext), H5T_NATIVE_DOUBLE);
@@ -182,14 +178,16 @@ void output_lsm(hid_t loc_id, SimulationBag *sim) {
     H5Tinsert(particle_type, "Fy_IBM", HOFFSET(LSMParticle, Fy_IBM), H5T_NATIVE_DOUBLE);
     H5Tinsert(particle_type, "Fz_IBM", HOFFSET(LSMParticle, Fz_IBM), H5T_NATIVE_DOUBLE);
 
+    H5Tinsert(particle_type, "Fx_FSI_diff", HOFFSET(LSMParticle, Fx_FSI_diff), H5T_NATIVE_DOUBLE);
+    H5Tinsert(particle_type, "Fy_FSI_diff", HOFFSET(LSMParticle, Fy_FSI_diff), H5T_NATIVE_DOUBLE);
+    H5Tinsert(particle_type, "Fz_FSI_diff", HOFFSET(LSMParticle, Fz_FSI_diff), H5T_NATIVE_DOUBLE);
+
     H5Tinsert(particle_type, "Fx", HOFFSET(LSMParticle, Fx), H5T_NATIVE_DOUBLE);
     H5Tinsert(particle_type, "Fy", HOFFSET(LSMParticle, Fy), H5T_NATIVE_DOUBLE);
     H5Tinsert(particle_type, "Fz", HOFFSET(LSMParticle, Fz), H5T_NATIVE_DOUBLE);
 
-    H5Tinsert(particle_type, "weight", HOFFSET(LSMParticle, weight), H5T_NATIVE_DOUBLE);
-
     H5Tinsert(particle_type, "N_connections", HOFFSET(LSMParticle, N_connections), H5T_NATIVE_INT);
-    H5Tinsert(particle_type, "chi", HOFFSET(LSMParticle, chi), H5T_NATIVE_DOUBLE);
+    H5Tinsert(particle_type, "chi", HOFFSET(LSMParticle, chi), H5T_NATIVE_INT);
 
     hid_t spring_type = H5Tcreate(H5T_COMPOUND, sizeof(LSMSpring));
 

@@ -9,7 +9,7 @@
 static inline void set_params(ParamBag *params)
 {
     // General parameters
-    params->NTIME = 10;
+    params->NTIME = 100;
     params->NSTORE = 1;
     params->NLOG = 1;
     params->NX = 100;
@@ -32,8 +32,10 @@ static inline void set_params(ParamBag *params)
     params->r_max = sqrt((double)(params->N_connections_bulk + 1)/DS_PI); // 2D
     // params->r_max = pow((double)(params->N_connections_bulk + 1) / (4.0 / 3.0 * DS_PI), 1.0 / 3.0); // 3D
     params->m = 1.0;
-    params->k = 2.0e-3;
+    params->k = 1e-3;
     params->c = 5e-2;
+    params->tol = 1e-6;
+    params->max_iters = 1000;
 }
 
 #endif

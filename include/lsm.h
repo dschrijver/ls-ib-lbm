@@ -16,7 +16,12 @@ void evaluate_spring_forces(SimulationBag *sim);
 void evaluate_damping_forces(SimulationBag *sim);
 void update_particle_preliminary_velocities(SimulationBag *sim);
 
-void evaluate_particle_weights(SimulationBag *sim);
+void interpolate_fluid_velocity_to_particle(double *uf, double *vf, double *wf, SimulationBag *sim);
+void spread_FSI_forces_to_fluid(SimulationBag *sim);
+void shift_fluid_velocity_FSI(SimulationBag *sim);
 void evaluate_FSI_forces(SimulationBag *sim);
+
+void compute_particle_final_velocity(SimulationBag *sim);
+void compute_particle_total_force(SimulationBag *sim);
 
 #endif

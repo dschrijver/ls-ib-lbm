@@ -36,6 +36,8 @@ typedef struct ParamBag
     double m;
     double k; 
     double c;
+    double tol;
+    int max_iters;
 
     // MPI
     int number_of_processes;  ///< Stores number of processes
@@ -81,6 +83,14 @@ typedef struct FieldBag
     double *Fx_rigid;
     double *Fy_rigid;
     double *Fz_rigid;
+
+    double *Fx_IBM_diff;
+    double *Fy_IBM_diff;
+    double *Fz_IBM_diff;
+
+    double *Fx_rigid_diff;
+    double *Fy_rigid_diff;
+    double *Fz_rigid_diff;
 } FieldBag;
 
 typedef struct Stencil
@@ -112,11 +122,7 @@ typedef struct LSMParticle
 
     double u_predict; 
     double v_predict;
-    double w_predict; 
-
-    double u_fluid;
-    double v_fluid;
-    double w_fluid;
+    double w_predict;
 
     double Fx_ext;
     double Fy_ext; 
@@ -132,16 +138,18 @@ typedef struct LSMParticle
 
     double Fx_IBM;
     double Fy_IBM;
-    double Fz_IBM; 
+    double Fz_IBM;
+
+    double Fx_FSI_diff;
+    double Fy_FSI_diff;
+    double Fz_FSI_diff;
 
     double Fx; 
     double Fy;
     double Fz;
 
-    double weight;
-
     int N_connections; 
-    double chi;
+    int chi;
 } LSMParticle;
 
 typedef struct LSMSpring

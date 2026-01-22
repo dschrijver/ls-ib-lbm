@@ -87,4 +87,11 @@ void allocate_fields(SimulationBag *sim)
     memset(fields->Fx_rigid, 0, malloc_size);
     memset(fields->Fy_rigid, 0, malloc_size);
     memset(fields->Fz_rigid, 0, malloc_size);
+
+    fields->Fx_IBM_diff = (double *)malloc(malloc_size);
+    fields->Fy_IBM_diff = (double *)malloc(malloc_size);
+    fields->Fz_IBM_diff = (double *)malloc(malloc_size);
+    fields->Fx_rigid_diff = (double *)malloc(malloc_size);
+    fields->Fy_rigid_diff = (double *)malloc(malloc_size);
+    fields->Fz_rigid_diff = (double *)malloc(malloc_size);
 }
